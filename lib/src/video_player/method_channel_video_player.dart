@@ -17,6 +17,12 @@ const MethodChannel _channel = MethodChannel('better_player_channel');
 class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<void> init() {
+    _channel.setMethodCallHandler((MethodCall call) async {
+      if (call.method == 'onUserLeaveHint') {
+        onUserLeaveHint?.call();
+      }
+    });
+
     return _channel.invokeMethod<void>('init');
   }
 

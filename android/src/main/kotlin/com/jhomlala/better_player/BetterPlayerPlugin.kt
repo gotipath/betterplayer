@@ -10,12 +10,14 @@ import android.app.RemoteAction
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.LongSparseArray
+import android.util.Rational
 import com.jhomlala.better_player.BetterPlayerCache.releaseCache
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -47,14 +49,16 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         val loader = FlutterLoader()
         flutterState = FlutterState(
             binding.applicationContext,
-            binding.binaryMessenger, object : KeyForAssetFn {
+            binding.binaryMessenger,
+            object : KeyForAssetFn {
                 override fun get(asset: String?): String {
                     return loader.getLookupKeyForAsset(
                         asset!!
                     )
                 }
 
-            }, object : KeyForAssetAndPackageName {
+            },
+            object : KeyForAssetAndPackageName {
                 override fun get(asset: String?, packageName: String?): String {
                     return loader.getLookupKeyForAsset(
                         asset!!, packageName!!
@@ -79,6 +83,10 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
+        binding.addOnUserLeaveHintListener {
+            if (flutterState == null) return@addOnUserLeaveHintListener
+            flutterState!!.methodChannel.invokeMethod("onUserLeaveHint", "")
+        }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {}
@@ -125,6 +133,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 )
                 videoPlayers.put(handle.id(), player)
             }
+
             PRE_CACHE_METHOD -> preCache(call, result)
             STOP_PRE_CACHE_METHOD -> stopPreCache(call, result)
             CLEAR_CACHE_METHOD -> clearCache(result)
@@ -154,37 +163,45 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             SET_DATA_SOURCE_METHOD -> {
                 setDataSource(call, result, player)
             }
+
             SET_LOOPING_METHOD -> {
                 player.setLooping(call.argument(LOOPING_PARAMETER)!!)
                 result.success(null)
             }
+
             SET_VOLUME_METHOD -> {
                 player.setVolume(call.argument(VOLUME_PARAMETER)!!)
                 result.success(null)
             }
+
             PLAY_METHOD -> {
                 setupNotification(player)
                 player.play()
                 result.success(null)
             }
+
             PAUSE_METHOD -> {
                 player.pause()
                 result.success(null)
             }
+
             SEEK_TO_METHOD -> {
                 val location = (call.argument<Any>(LOCATION_PARAMETER) as Number?)!!.toInt()
                 player.seekTo(location)
                 result.success(null)
             }
+
             POSITION_METHOD -> {
                 result.success(player.position)
                 player.sendBufferingUpdate(false)
             }
+
             ABSOLUTE_POSITION_METHOD -> result.success(player.absolutePosition)
             SET_SPEED_METHOD -> {
                 player.setSpeed(call.argument(SPEED_PARAMETER)!!)
                 result.success(null)
             }
+
             SET_TRACK_PARAMETERS_METHOD -> {
                 player.setTrackParameters(
                     call.argument(WIDTH_PARAMETER)!!,
@@ -193,17 +210,21 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 )
                 result.success(null)
             }
+
             ENABLE_PICTURE_IN_PICTURE_METHOD -> {
                 enablePictureInPicture(player)
                 result.success(null)
             }
+
             DISABLE_PICTURE_IN_PICTURE_METHOD -> {
                 disablePictureInPicture(player)
                 result.success(null)
             }
+
             IS_PICTURE_IN_PICTURE_SUPPORTED_METHOD -> result.success(
                 isPictureInPictureSupported()
             )
+
             SET_AUDIO_TRACK_METHOD -> {
                 val name = call.argument<String?>(NAME_PARAMETER)
                 val index = call.argument<Int?>(INDEX_PARAMETER)
@@ -212,6 +233,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 }
                 result.success(null)
             }
+
             SET_MIX_WITH_OTHERS_METHOD -> {
                 val mixWitOthers = call.argument<Boolean?>(
                     MIX_WITH_OTHERS_PARAMETER
@@ -220,10 +242,12 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                     player.setMixWithOthers(mixWitOthers)
                 }
             }
+
             DISPOSE_METHOD -> {
                 dispose(player, textureId)
                 result.success(null)
             }
+
             else -> result.notImplemented()
         }
     }
@@ -413,21 +437,27 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
     private fun enablePictureInPicture(player: BetterPlayer) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             player.setupMediaSession(flutterState!!.applicationContext)
-            activity!!.enterPictureInPictureMode(PictureInPictureParams.Builder()
-            // Disable all actions in PiP
-                .setActions(
-                    listOf(
-                        RemoteAction(
-                            Icon.createWithResource(activity,android.R.color.transparent),
-                            "",
-                            "",
-                            PendingIntent.getBroadcast(activity!!,69,
-                                Intent(), PendingIntent.FLAG_IMMUTABLE
+            activity!!.enterPictureInPictureMode(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(Rational(16, 9))
+                    // Disable all actions in PiP
+                    .setActions(
+                        listOf(
+                            RemoteAction(
+                                Icon.createWithResource(activity, android.R.color.transparent),
+                                "",
+                                "",
+                                PendingIntent.getBroadcast(
+                                    activity!!, 69, Intent(), PendingIntent.FLAG_IMMUTABLE
+                                )
                             )
                         )
-                    )
-                )
-                .build())
+                    ).apply {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//                            setSeamlessResizeEnabled(false)
+                        }
+                    }.build()
+            )
             startPictureInPictureListenerTimer(player)
             player.onPictureInPictureStatusChanged(true)
         }
@@ -486,7 +516,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         val keyForAssetAndPackageName: KeyForAssetAndPackageName,
         val textureRegistry: TextureRegistry?
     ) {
-        private val methodChannel: MethodChannel = MethodChannel(binaryMessenger, CHANNEL)
+        val methodChannel: MethodChannel = MethodChannel(binaryMessenger, CHANNEL)
 
         fun startListening(methodCallHandler: BetterPlayerPlugin?) {
             methodChannel.setMethodCallHandler(methodCallHandler)
