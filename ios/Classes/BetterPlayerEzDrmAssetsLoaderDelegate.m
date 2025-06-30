@@ -10,7 +10,7 @@ NSString *_assetId;
 
 NSString *DEFAULT_LICENSE_SERVER_URL = @"https://fps.ezdrm.com/api/licenses/";
 
-- (instancetype)init:(NSURL *)certificateURL withLicenseURL:(NSURL *)licenseURL {
+- (instancetype)init:(NSString *)certificateURL withLicenseURL:(NSURL *)licenseURL {
     self = [super init];
     _certificateURL = certificateURL;
     _licenseURL = licenseURL;
@@ -35,7 +35,7 @@ NSString *DEFAULT_LICENSE_SERVER_URL = @"https://fps.ezdrm.com/api/licenses/";
         finalLicenseURL = [[NSURL alloc] initWithString:DEFAULT_LICENSE_SERVER_URL];
     }
     // NSURL * ksmURL = [[NSURL alloc] initWithString: [NSString stringWithFormat:@"%@%@%@",finalLicenseURL,assetId,customParams]];
-    
+
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:finalLicenseURL];
     [request setHTTPMethod:@"POST"];
     [request setValue:@"application/octet-stream" forHTTPHeaderField:@"Content-type"];
@@ -60,8 +60,15 @@ NSString *DEFAULT_LICENSE_SERVER_URL = @"https://fps.ezdrm.com/api/licenses/";
  ** ---------------------------------------*/
 - (NSData *)getAppCertificate:(NSString *)String {
     NSData *certificate = nil;
-    certificate = [NSData dataWithContentsOfURL:_certificateURL];
-    return certificate;
+
+    if ([_certificateURL hasPrefix:@"http://"] || [_certificateURL hasPrefix:@"https://"]) {
+        // Treat _certificateURL as a remote URL
+        NSURL *url = [NSURL URLWithString:_certificateURL];
+        return [NSData dataWithContentsOfURL:url];
+    } else {
+        // Assume _certificateURL is a base64-encoded string
+        return [[NSData alloc] initWithBase64EncodedString:_certificateURL options:0];
+    }
 }
 
 - (BOOL)resourceLoader:(AVAssetResourceLoader *)resourceLoader shouldWaitForLoadingOfRequestedResource:(AVAssetResourceLoadingRequest *)loadingRequest {

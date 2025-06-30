@@ -461,7 +461,7 @@ class BetterPlayerController {
           formatHint: _getVideoFormat(_betterPlayerDataSource!.videoFormat),
           licenseUrl: _betterPlayerDataSource?.drmConfiguration?.licenseUrl,
           certificateUrl:
-              _betterPlayerDataSource?.drmConfiguration?.certificateUrl,
+              _betterPlayerDataSource?.drmConfiguration?.certificateUrlOrBase64,
           drmHeaders: _betterPlayerDataSource?.drmConfiguration?.headers,
           activityName:
               _betterPlayerDataSource?.notificationConfiguration?.activityName,

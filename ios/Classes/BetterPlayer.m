@@ -215,9 +215,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
         AVURLAsset* asset = [AVURLAsset URLAssetWithURL:url
                                                 options:@{@"AVURLAssetHTTPHeaderFieldsKey" : headers}];
         if (certificateUrl && certificateUrl != [NSNull null] && [certificateUrl length] > 0) {
-            NSURL * certificateNSURL = [[NSURL alloc] initWithString: certificateUrl];
             NSURL * licenseNSURL = [[NSURL alloc] initWithString: licenseUrl];
-            _loaderDelegate = [[BetterPlayerEzDrmAssetsLoaderDelegate alloc] init:certificateNSURL withLicenseURL:licenseNSURL];
+            _loaderDelegate = [[BetterPlayerEzDrmAssetsLoaderDelegate alloc] init:certificateUrl withLicenseURL:licenseNSURL];
             dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_DEFAULT, -1);
             dispatch_queue_t streamQueue = dispatch_queue_create("streamQueue", qos);
             [asset.resourceLoader setDelegate:_loaderDelegate queue:streamQueue];
