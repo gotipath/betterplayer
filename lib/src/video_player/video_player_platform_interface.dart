@@ -5,11 +5,10 @@
 // Dart imports:
 import 'dart:async';
 
-// Flutter imports:
-import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../better_player.dart';
 import 'method_channel_video_player.dart';
 
 /// The interface that implementations of video_player must implement.
@@ -54,6 +53,10 @@ abstract class VideoPlayerPlatform {
   }
 
   VoidCallback? onUserLeaveHint;
+
+  Future<DrmInfo> getDRMInfo() {
+    throw UnimplementedError('init() has not been implemented.');
+  }
 
   /// Initializes the platform interface and disposes all existing players.
   ///

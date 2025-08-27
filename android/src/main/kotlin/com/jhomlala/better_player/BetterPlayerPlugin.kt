@@ -10,28 +10,53 @@ import android.app.RemoteAction
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Rect
 import android.graphics.drawable.Icon
+import android.media.MediaDrm
+import android.media.MediaDrm.PROPERTY_ALGORITHMS
+import android.media.MediaDrm.PROPERTY_DESCRIPTION
+import android.media.MediaDrm.PROPERTY_VENDOR
+import android.media.MediaDrm.PROPERTY_VERSION
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
+import com.google.android.exoplayer2.C
 import com.jhomlala.better_player.BetterPlayerCache.releaseCache
-import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
 import io.flutter.embedding.engine.loader.FlutterLoader
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.EventChannel
+import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.FlutterPlugin.FlutterPluginBinding
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
+import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.view.TextureRegistry
-import java.lang.Exception
-import java.util.HashMap
+import kotlin.Any
+import kotlin.Boolean
+import kotlin.Exception
+import kotlin.Int
+import kotlin.Long
+import kotlin.Number
+import kotlin.String
+import kotlin.Suppress
+import kotlin.apply
+import kotlin.collections.HashMap
+import kotlin.collections.Map
+import kotlin.collections.get
+import kotlin.collections.listOf
+import kotlin.collections.mapOf
+import kotlin.collections.plus
+import kotlin.collections.remove
+import kotlin.plus
+import kotlin.sequences.plus
+import kotlin.text.clear
+import kotlin.text.get
+import kotlin.text.plus
+import kotlin.to
 
 /**
  * Android platform implementation of the VideoPlayerPlugin.
@@ -137,6 +162,21 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             PRE_CACHE_METHOD -> preCache(call, result)
             STOP_PRE_CACHE_METHOD -> stopPreCache(call, result)
             CLEAR_CACHE_METHOD -> clearCache(result)
+            DRM_INFO -> {
+                val mediaDrm = MediaDrm(C.WIDEVINE_UUID)
+                // https://stackoverflow.com/questions/24892532/drmmanagerclient-acquiredrminfo-is-failing
+                result.success(
+                    mapOf<String, String>(
+                        PROPERTY_VENDOR to mediaDrm.getPropertyString(PROPERTY_VENDOR),
+                        PROPERTY_VERSION to mediaDrm.getPropertyString(PROPERTY_VERSION),
+                        PROPERTY_DESCRIPTION to mediaDrm.getPropertyString(PROPERTY_DESCRIPTION),
+                        PROPERTY_ALGORITHMS to mediaDrm.getPropertyString(PROPERTY_ALGORITHMS),
+                        "securityLevel" to mediaDrm.getPropertyString("securityLevel"),
+                        "maxHdcpLevel" to mediaDrm.getPropertyString("maxHdcpLevel"),
+                    )
+                )
+            }
+
             else -> {
                 val textureId = (call.argument<Any>(TEXTURE_ID_PARAMETER) as Number?)!!.toLong()
                 val player = videoPlayers[textureId]
@@ -417,6 +457,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
             videoPlayers.valueAt(index).disposeRemoteNotifications()
         }
     }
+
     @Suppress("UNCHECKED_CAST")
     private fun <T> getParameter(parameters: Map<String, Any?>?, key: String, defaultValue: T): T {
         if (parameters?.containsKey(key) == true) {
@@ -593,5 +634,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val DISPOSE_METHOD = "dispose"
         private const val PRE_CACHE_METHOD = "preCache"
         private const val STOP_PRE_CACHE_METHOD = "stopPreCache"
+        private const val DRM_INFO = "drmInfo"
+
     }
 }

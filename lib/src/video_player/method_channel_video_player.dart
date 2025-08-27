@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 import 'dart:async';
+import 'dart:io';
 
-import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
+import 'package:better_player/better_player.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-
-import 'video_player_platform_interface.dart';
 
 const MethodChannel _channel = MethodChannel('better_player_channel');
 
@@ -24,6 +24,36 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
     });
 
     return _channel.invokeMethod<void>('init');
+  }
+
+  @override
+  Future<DrmInfo> getDRMInfo() async {
+    if (Platform.isIOS) {
+      final device = await DeviceInfoPlugin().iosInfo;
+      if (!device.isPhysicalDevice) {
+        return DrmInfo(
+          vendor: "null",
+          description: "null",
+          algorithms: "null",
+          securityLevel: "null",
+        );
+      }
+      return DrmInfo(
+        vendor: 'com.apple.fairplay',
+        version: device.systemVersion,
+        description:
+            'FairPlay Streaming CDM ${device.isiOSAppOnMac ? "(MacOS)" : ""}',
+        algorithms: 'AES/CTR/NoPadding',
+        securityLevel: 'hardware',
+      );
+    }
+    final res = await _channel.invokeMethod<Map>('drmInfo');
+    return DrmInfo.fromMap({...?res});
+    // vendor: com.google.android.widevine,
+    // version: 18.0.0@340720000,
+    // description: Widevine CDM,
+    // algorithms: AES/CBC/NoPadding,HmacSHA256,
+    // securityLevel: L3
   }
 
   @override

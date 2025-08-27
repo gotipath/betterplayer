@@ -29,3 +29,32 @@ class BetterPlayerDrmConfiguration {
       this.headers,
       this.clearKey});
 }
+
+class DrmInfo {
+  final String vendor;
+  final String? version;
+  final String description;
+  final String algorithms;
+  final String securityLevel;
+  final String? maxHdcpLevel;
+
+  DrmInfo({
+    required this.vendor,
+    required this.description,
+    required this.algorithms,
+    required this.securityLevel,
+    this.version,
+    this.maxHdcpLevel,
+  });
+
+  factory DrmInfo.fromMap(Map<String, dynamic> map) {
+    return DrmInfo(
+      vendor: map['vendor'] ?? '',
+      version: map['version'],
+      description: map['description'] ?? '',
+      algorithms: map['algorithms'] ?? '',
+      securityLevel: map['securityLevel'] ?? '',
+      maxHdcpLevel: map['maxHdcpLevel'],
+    );
+  }
+}
