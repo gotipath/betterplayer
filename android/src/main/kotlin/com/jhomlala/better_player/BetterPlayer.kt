@@ -659,69 +659,87 @@ internal class BetterPlayer(
         mediaSession = null
     }
 
-    fun setAudioTrack(name: String, index: Int) {
+    fun setAudioTrack(name: String, index: Int? = null) {
         try {
             val mappedTrackInfo = trackSelector.currentMappedTrackInfo
-            if (mappedTrackInfo != null) {
-                for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
-                    if (mappedTrackInfo.getRendererType(rendererIndex) != C.TRACK_TYPE_AUDIO) {
-                        continue
-                    }
-                    val trackGroupArray = mappedTrackInfo.getTrackGroups(rendererIndex)
-                    var hasElementWithoutLabel = false
-                    var hasStrangeAudioTrack = false
-                    for (groupIndex in 0 until trackGroupArray.length) {
-                        val group = trackGroupArray[groupIndex]
-                        for (groupElementIndex in 0 until group.length) {
-                            val format = group.getFormat(groupElementIndex)
-                            if (format.label == null) {
-                                hasElementWithoutLabel = true
-                            }
-                            if (format.id != null && format.id == "1/15") {
-                                hasStrangeAudioTrack = true
-                            }
-                        }
-                    }
-                    for (groupIndex in 0 until trackGroupArray.length) {
-                        val group = trackGroupArray[groupIndex]
-                        for (groupElementIndex in 0 until group.length) {
-                            val label = group.getFormat(groupElementIndex).label
-                            if (name == label && index == groupIndex) {
-                                setAudioTrack(rendererIndex, groupIndex, groupElementIndex)
-                                return
-                            }
+            Log.d("setAudioTrack", "Request to set audio track: name=$name index=$index")
 
-                            ///Fallback option
-                            if (!hasStrangeAudioTrack && hasElementWithoutLabel && index == groupIndex) {
-                                setAudioTrack(rendererIndex, groupIndex, groupElementIndex)
-                                return
-                            }
-                            ///Fallback option
-                            if (hasStrangeAudioTrack && name == label) {
-                                setAudioTrack(rendererIndex, groupIndex, groupElementIndex)
-                                return
-                            }
+            if (mappedTrackInfo == null) {
+                Log.w("setAudioTrack", "Mapped track info is null")
+                return
+            }
+
+            for (rendererIndex in 0 until mappedTrackInfo.rendererCount) {
+                if (mappedTrackInfo.getRendererType(rendererIndex) != C.TRACK_TYPE_AUDIO) continue
+
+                val trackGroups = mappedTrackInfo.getTrackGroups(rendererIndex)
+
+                for (groupIndex in 0 until trackGroups.length) {
+                    val group = trackGroups[groupIndex]
+
+                    for (trackIndex in 0 until group.length) {
+                        val format = group.getFormat(trackIndex)
+                        val label = format.label
+                        val language = format.language
+                        val id = format.id
+
+                        Log.d("AudioTrackDebug", "Checking track: group=$groupIndex track=$trackIndex label=$label language=$language id=$id")
+
+                        val labelMatch = label?.equals(name, ignoreCase = true) == true
+                        val languageMatch = language?.equals(name, ignoreCase = true) == true
+                        val idMatch = id?.equals(name, ignoreCase = true) == true
+                        val indexMatch = index != null && groupIndex == index
+
+                        // Primary match by label or language or ID
+                        if (labelMatch || languageMatch || idMatch) {
+                            Log.d("AudioTrackDebug", "Match found by label/language/id")
+                            applyAudioTrack(rendererIndex, groupIndex, trackIndex)
+                            return
+                        }
+
+                        // Optional fallback match by index if nothing else matches
+                        if (indexMatch) {
+                            Log.d("AudioTrackDebug", "Fallback match by index")
+                            applyAudioTrack(rendererIndex, groupIndex, trackIndex)
+                            return
                         }
                     }
                 }
             }
-        } catch (exception: Exception) {
-            Log.e(TAG, "setAudioTrack failed$exception")
+
+            Log.w("setAudioTrack", "No matching audio track found for name=$name and index=$index")
+
+        } catch (e: Exception) {
+            Log.e("setAudioTrack", "Error selecting audio track", e)
         }
     }
 
-    private fun setAudioTrack(rendererIndex: Int, groupIndex: Int, groupElementIndex: Int) {
-        val mappedTrackInfo = trackSelector.currentMappedTrackInfo
-        if (mappedTrackInfo != null) {
-            val builder = trackSelector.parameters.buildUpon()
-                .setRendererDisabled(rendererIndex, false)
-                .addOverride(TrackSelectionOverride(mappedTrackInfo.getTrackGroups(rendererIndex)
-                    .get(groupIndex), groupElementIndex)
-                )
-                .build()
+    private fun applyAudioTrack(rendererIndex: Int, groupIndex: Int, trackIndex: Int) {
+        val mappedTrackInfo = trackSelector.currentMappedTrackInfo ?: return
 
-            trackSelector.parameters = builder
+        val trackGroups = mappedTrackInfo.getTrackGroups(rendererIndex)
+        if (groupIndex >= trackGroups.length) {
+            Log.e("applyAudioTrack", "Invalid group index: $groupIndex")
+            return
         }
+
+        val group = trackGroups[groupIndex]
+        if (trackIndex >= group.length) {
+            Log.e("applyAudioTrack", "Invalid track index: $trackIndex")
+            return
+        }
+
+        val override = TrackSelectionOverride(group, listOf(trackIndex))
+        val parameters = trackSelector.parameters
+            .buildUpon()
+            .setRendererDisabled(rendererIndex, false)
+            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+            .addOverride(override)
+            .build()
+
+        trackSelector.parameters = parameters
+
+        Log.d("applyAudioTrack", "Audio track selected: renderer=$rendererIndex group=$groupIndex track=$trackIndex")
     }
 
     private fun sendSeekToEvent(positionMs: Long) {
