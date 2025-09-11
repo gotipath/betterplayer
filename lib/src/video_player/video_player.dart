@@ -233,19 +233,13 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           _timer?.cancel();
           break;
         case VideoEventType.bufferingUpdate:
-          value = value.copyWith(
-            buffered: event.buffered,
-            duration: event.duration,
-          );
+          value = value.copyWith(buffered: event.buffered);
           break;
         case VideoEventType.bufferingStart:
           value = value.copyWith(isBuffering: true);
           break;
         case VideoEventType.bufferingEnd:
-          value = value.copyWith(
-            isBuffering: false,
-            duration: event.duration,
-          );
+          value = value.copyWith(isBuffering: false);
 
           break;
 
@@ -719,7 +713,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return _textureId == null
-        ? Container()
+        ? SizedBox.shrink()
         : _videoPlayerPlatform.buildView(_textureId);
   }
 }

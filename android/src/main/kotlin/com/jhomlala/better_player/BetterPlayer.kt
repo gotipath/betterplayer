@@ -81,9 +81,9 @@ internal class BetterPlayer(
     customDefaultLoadControl: CustomDefaultLoadControl?,
     result: MethodChannel.Result
 ) {
+    val playerView: PlayerView
     private val exoPlayer: ExoPlayer
 
-    private val playerView: PlayerView
     private val eventSink = QueuingEventSink()
     private val trackSelector: DefaultTrackSelector = DefaultTrackSelector(context)
     private val loadControl: LoadControl
@@ -513,8 +513,11 @@ internal class BetterPlayer(
                     eventSink.setDelegate(null)
                 }
             })
-        surface = Surface(textureEntry.surfaceTexture())
-        exoPlayer.setVideoSurface(surface)
+//        surface = Surface(textureEntry.surfaceTexture())
+//        exoPlayer.setVideoSurface(surface)
+        playerView.player = exoPlayer
+
+
         setAudioAttributes(exoPlayer, true)
 
 
@@ -522,9 +525,9 @@ internal class BetterPlayer(
 
             override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 super.onTimelineChanged(timeline, reason)
-                val event: MutableMap<String, Any> = HashMap()
+                val event: MutableMap<String, Any?> = HashMap()
                 event["event"] = if (exoPlayer.isPlayingAd) "imaStart" else "imaEnd"
-                event["duration"] = getDuration()
+                if (getDuration() != C.TIME_UNSET) event["duration"] = getDuration()
                 eventSink.success(event)
             }
 
@@ -549,7 +552,7 @@ internal class BetterPlayer(
 
                         if (exoPlayer.isPlayingAd) {
                             event["event"] = "imaStart"
-                            event["duration"] = getDuration()
+                            if (getDuration() != C.TIME_UNSET) event["duration"] = getDuration()
                             eventSink.success(event)
                         }
                     }
@@ -577,7 +580,7 @@ internal class BetterPlayer(
     }
 
     fun sendBufferingUpdate(isFromBufferingStart: Boolean) {
-        val bufferedPosition = exoPlayer.bufferedPosition ?: 0L
+        val bufferedPosition = exoPlayer.bufferedPosition
         if (isFromBufferingStart || bufferedPosition != lastSendBufferedPosition) {
             val event: MutableMap<String, Any> = HashMap()
             event["event"] = "bufferingUpdate"
@@ -688,7 +691,7 @@ internal class BetterPlayer(
         }
     }
 
-    private fun getDuration(): Long = exoPlayer.duration ?: 0L
+    private fun getDuration(): Long = exoPlayer.duration
 
     /**
      * Create media session which will be used in notifications, pip mode.

@@ -8,6 +8,7 @@ import 'package:better_player/better_player.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -458,14 +459,15 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.imaStart,
             key: key,
-            duration: Duration(milliseconds: map['duration'] as int),
           );
 
         case 'imaEnd':
           return VideoEvent(
             eventType: VideoEventType.imaEnd,
             key: key,
-            duration: Duration(milliseconds: map['duration'] as int),
+            duration: (map['duration'] != null)
+                ? Duration(milliseconds: map['duration'] as int)
+                : null,
           );
 
         default:
@@ -486,7 +488,13 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         creationParams: {'textureId': textureId!},
       );
     } else {
-      return Texture(textureId: textureId!);
+      // TODO Only for android>23
+      return _DirectAndroidViewSurface(
+        viewType: 'com.jhomlala/better_player',
+        creationParams: {'textureId': textureId!},
+      );
+
+      // return Texture(textureId: textureId!);
     }
   }
 
@@ -500,5 +508,44 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       Duration(milliseconds: pair[0] as int),
       Duration(milliseconds: pair[1] as int),
     );
+  }
+}
+
+class _DirectAndroidViewSurface extends StatefulWidget {
+  const _DirectAndroidViewSurface({
+    required this.viewType,
+    this.creationParams,
+  });
+
+  final String viewType;
+  final dynamic creationParams;
+
+  @override
+  State<_DirectAndroidViewSurface> createState() =>
+      _DirectAndroidViewSurfaceState();
+}
+
+class _DirectAndroidViewSurfaceState extends State<_DirectAndroidViewSurface> {
+  late final _controller = PlatformViewsService.initSurfaceAndroidView(
+    id: UniqueKey().hashCode,
+    viewType: widget.viewType,
+    layoutDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+    creationParams: widget.creationParams,
+    creationParamsCodec: const StandardMessageCodec(),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AndroidViewSurface(
+      controller: _controller,
+      gestureRecognizers: {},
+      hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
