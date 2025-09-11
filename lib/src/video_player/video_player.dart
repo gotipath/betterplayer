@@ -5,6 +5,7 @@
 // Dart imports:
 import 'dart:async';
 import 'dart:io';
+
 import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
 import 'package:better_player/src/video_player/video_player_platform_interface.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,7 @@ class VideoPlayerValue {
     this.speed = 1.0,
     this.errorDescription,
     this.isPip = false,
+    this.isShowingAds = false,
   });
 
   /// Returns an instance with a `null` [Duration].
@@ -107,6 +109,9 @@ class VideoPlayerValue {
     return aspectRatio;
   }
 
+  /// Indicates whether or not ads are showing
+  final bool isShowingAds;
+
   /// Returns a new instance that has the same values as this current instance,
   /// except for any overrides passed in as arguments to [copyWidth].
   VideoPlayerValue copyWith({
@@ -122,6 +127,7 @@ class VideoPlayerValue {
     String? errorDescription,
     double? speed,
     bool? isPip,
+    bool? isShowingAds,
   }) {
     return VideoPlayerValue(
       duration: duration ?? this.duration,
@@ -136,6 +142,7 @@ class VideoPlayerValue {
       speed: speed ?? this.speed,
       errorDescription: errorDescription ?? this.errorDescription,
       isPip: isPip ?? this.isPip,
+      isShowingAds: isShowingAds ?? this.isShowingAds,
     );
   }
 
@@ -226,15 +233,20 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           _timer?.cancel();
           break;
         case VideoEventType.bufferingUpdate:
-          value = value.copyWith(buffered: event.buffered);
+          value = value.copyWith(
+            buffered: event.buffered,
+            duration: event.duration,
+          );
           break;
         case VideoEventType.bufferingStart:
           value = value.copyWith(isBuffering: true);
           break;
         case VideoEventType.bufferingEnd:
-          if (value.isBuffering) {
-            value = value.copyWith(isBuffering: false);
-          }
+          value = value.copyWith(
+            isBuffering: false,
+            duration: event.duration,
+          );
+
           break;
 
         case VideoEventType.play:
@@ -252,6 +264,19 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         case VideoEventType.pipStop:
           value = value.copyWith(isPip: false);
           break;
+
+        case VideoEventType.imaStart:
+          value = value.copyWith(isShowingAds: true);
+          break;
+
+        case VideoEventType.imaEnd:
+          if (!value.isShowingAds) break;
+          value = value.copyWith(
+            isShowingAds: false,
+            duration: event.duration,
+          );
+          break;
+
         case VideoEventType.unknown:
           break;
       }
@@ -335,6 +360,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
     String? activityName,
     String? clearKey,
     String? videoExtension,
+    String? imaAdTagUrl,
   }) {
     return _setDataSource(
       DataSource(
@@ -358,6 +384,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         activityName: activityName,
         clearKey: clearKey,
         videoExtension: videoExtension,
+        imaAdTagUrl: imaAdTagUrl,
       ),
     );
   }

@@ -467,6 +467,7 @@ class BetterPlayerController {
               _betterPlayerDataSource?.notificationConfiguration?.activityName,
           clearKey: _betterPlayerDataSource?.drmConfiguration?.clearKey,
           videoExtension: _betterPlayerDataSource!.videoExtension,
+          imaAdTagUrl: _betterPlayerDataSource?.imaAdTagUrl,
         );
 
         break;
@@ -1146,6 +1147,15 @@ class BetterPlayerController {
       case VideoEventType.bufferingEnd:
         _postEvent(BetterPlayerEvent(BetterPlayerEventType.bufferingEnd));
         break;
+
+      case VideoEventType.imaStart:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.imaStart));
+        break;
+
+      case VideoEventType.imaEnd:
+        _postEvent(BetterPlayerEvent(BetterPlayerEventType.imaStop));
+        break;
+
       default:
 
         ///TODO: Handle when needed

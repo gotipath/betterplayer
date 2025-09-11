@@ -233,6 +233,7 @@ class DataSource {
     this.activityName,
     this.clearKey,
     this.videoExtension,
+    this.imaAdTagUrl,
   }) : assert(uri == null || asset == null);
 
   /// Describes the type of data source this [VideoPlayerController]
@@ -311,6 +312,8 @@ class DataSource {
 
   final String? videoExtension;
 
+  final String? imaAdTagUrl;
+
   /// Key to compare DataSource
   String get key {
     String? result = "";
@@ -336,7 +339,7 @@ class DataSource {
         ' $formatHint, asset: $asset, package: $package, headers: $headers,'
         ' useCache: $useCache,maxCacheSize: $maxCacheSize, maxCacheFileSize: '
         '$maxCacheFileSize, showNotification: $showNotification, title: $title,'
-        ' author: $author}';
+        ' author: $author, imaAdTagUrl: $imaAdTagUrl}';
   }
 }
 
@@ -467,6 +470,10 @@ enum VideoEventType {
 
   /// Picture in picture mode has been dismissed
   pipStop,
+
+  /// IMA Ads
+  imaStart,
+  imaEnd,
 
   /// An unknown event has been received.
   unknown,

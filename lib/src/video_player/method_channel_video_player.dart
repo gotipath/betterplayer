@@ -133,6 +133,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'activityName': dataSource.activityName,
           'clearKey': dataSource.clearKey,
           'videoExtension': dataSource.videoExtension,
+          'imaAdTagUrl': dataSource.imaAdTagUrl,
         };
         break;
       case DataSourceType.file:
@@ -451,6 +452,20 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.pipStop,
             key: key,
+          );
+
+        case 'imaStart':
+          return VideoEvent(
+            eventType: VideoEventType.imaStart,
+            key: key,
+            duration: Duration(milliseconds: map['duration'] as int),
+          );
+
+        case 'imaEnd':
+          return VideoEvent(
+            eventType: VideoEventType.imaEnd,
+            key: key,
+            duration: Duration(milliseconds: map['duration'] as int),
           );
 
         default:
