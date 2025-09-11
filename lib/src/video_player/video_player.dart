@@ -274,6 +274,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           value = value.copyWith(
             isShowingAds: false,
             duration: event.duration,
+            size: event.size,
           );
           break;
 
@@ -719,7 +720,7 @@ class _VideoPlayerState extends State<VideoPlayer> {
   @override
   Widget build(BuildContext context) {
     return _textureId == null
-        ? Container()
+        ? SizedBox.shrink()
         : _videoPlayerPlatform.buildView(_textureId);
   }
 }

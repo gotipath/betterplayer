@@ -81,9 +81,9 @@ internal class BetterPlayer(
     customDefaultLoadControl: CustomDefaultLoadControl?,
     result: MethodChannel.Result
 ) {
+   val playerView: PlayerView
     private val exoPlayer: ExoPlayer
 
-    private val playerView: PlayerView
     private val eventSink = QueuingEventSink()
     private val trackSelector: DefaultTrackSelector = DefaultTrackSelector(context)
     private val loadControl: LoadControl
@@ -513,8 +513,11 @@ internal class BetterPlayer(
                     eventSink.setDelegate(null)
                 }
             })
-        surface = Surface(textureEntry.surfaceTexture())
-        exoPlayer.setVideoSurface(surface)
+//        surface = Surface(textureEntry.surfaceTexture())
+//        exoPlayer.setVideoSurface(surface)
+        playerView.player = exoPlayer
+
+
         setAudioAttributes(exoPlayer, true)
 
 
@@ -522,9 +525,24 @@ internal class BetterPlayer(
 
             override fun onTimelineChanged(timeline: Timeline, reason: Int) {
                 super.onTimelineChanged(timeline, reason)
-                val event: MutableMap<String, Any> = HashMap()
+                val event: MutableMap<String, Any?> = HashMap()
                 event["event"] = if (exoPlayer.isPlayingAd) "imaStart" else "imaEnd"
-                event["duration"] = getDuration()
+
+
+                if (!exoPlayer.isPlayingAd) event["duration"] = getDuration()
+                if (exoPlayer.videoFormat != null) {
+                    val videoFormat = exoPlayer.videoFormat
+                    var width = videoFormat?.width
+                    var height = videoFormat?.height
+                    val rotationDegrees = videoFormat?.rotationDegrees
+                    // Switch the width/height if video was taken in portrait mode
+                    if (rotationDegrees == 90 || rotationDegrees == 270) {
+                        width = exoPlayer.videoFormat?.height
+                        height = exoPlayer.videoFormat?.width
+                    }
+                    event["width"] = width
+                    event["height"] = height
+                }
                 eventSink.success(event)
             }
 

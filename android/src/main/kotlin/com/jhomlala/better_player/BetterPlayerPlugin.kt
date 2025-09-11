@@ -22,6 +22,7 @@ import android.os.Looper
 import android.util.Log
 import android.util.LongSparseArray
 import android.util.Rational
+import android.view.View
 import com.google.android.exoplayer2.C
 import com.jhomlala.better_player.BetterPlayerCache.releaseCache
 import io.flutter.embedding.engine.loader.FlutterLoader
@@ -34,6 +35,9 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
+import io.flutter.plugin.common.StandardMessageCodec
+import io.flutter.plugin.platform.PlatformView
+import io.flutter.plugin.platform.PlatformViewFactory
 import io.flutter.view.TextureRegistry
 import kotlin.Any
 import kotlin.Boolean
@@ -46,16 +50,8 @@ import kotlin.Suppress
 import kotlin.apply
 import kotlin.collections.HashMap
 import kotlin.collections.Map
-import kotlin.collections.get
 import kotlin.collections.listOf
 import kotlin.collections.mapOf
-import kotlin.collections.plus
-import kotlin.collections.remove
-import kotlin.plus
-import kotlin.sequences.plus
-import kotlin.text.clear
-import kotlin.text.get
-import kotlin.text.plus
 import kotlin.to
 
 /**
@@ -91,6 +87,9 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 }
             },
             binding.textureRegistry
+        )
+        binding.platformViewRegistry.registerViewFactory(
+            "com.jhomlala/better_player", PlayerFactory(videoPlayers)
         )
         flutterState?.startListening(this)
     }
@@ -639,5 +638,23 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val STOP_PRE_CACHE_METHOD = "stopPreCache"
         private const val DRM_INFO = "drmInfo"
 
+    }
+}
+
+private class PlayerFactory(val videoPlayers: LongSparseArray<BetterPlayer>) :
+    PlatformViewFactory(StandardMessageCodec.INSTANCE) {
+    @Suppress("UNCHECKED_CAST")
+    override fun create(context: Context?, viewId: Int, args: Any?): PlatformView {
+        val textureId = (args as Map<String, Long>)["textureId"]!!
+        val betterPlayer = videoPlayers.get(textureId)
+        return PlayerPlatformView(betterPlayer)
+    }
+
+    inner class PlayerPlatformView(val betterPlayer: BetterPlayer) : PlatformView {
+        override fun getView(): View? {
+            return betterPlayer.playerView
+        }
+
+        override fun dispose() {}
     }
 }

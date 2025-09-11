@@ -8,6 +8,7 @@ import 'package:better_player/better_player.dart';
 import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -42,7 +43,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         vendor: 'com.apple.fairplay',
         version: device.systemVersion,
         description:
-            'FairPlay Streaming CDM ${device.isiOSAppOnMac ? "(MacOS)" : ""}',
+        'FairPlay Streaming CDM ${device.isiOSAppOnMac ? "(MacOS)" : ""}',
         algorithms: 'AES/CTR/NoPadding',
         securityLevel: 'hardware',
       );
@@ -79,7 +80,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'maxBufferMs': bufferingConfiguration.maxBufferMs,
           'bufferForPlaybackMs': bufferingConfiguration.bufferForPlaybackMs,
           'bufferForPlaybackAfterRebufferMs':
-              bufferingConfiguration.bufferForPlaybackAfterRebufferMs,
+          bufferingConfiguration.bufferForPlaybackAfterRebufferMs,
         },
       );
 
@@ -214,8 +215,8 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setTrackParameters(
-      int? textureId, int? width, int? height, int? bitrate) {
+  Future<void> setTrackParameters(int? textureId, int? width, int? height,
+      int? bitrate) {
     return _channel.invokeMethod<void>(
       'setTrackParameters',
       <String, dynamic>{
@@ -242,18 +243,18 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   Future<Duration> getPosition(int? textureId) async {
     return Duration(
         milliseconds: await _channel.invokeMethod<int>(
-              'position',
-              <String, dynamic>{'textureId': textureId},
-            ) ??
+          'position',
+          <String, dynamic>{'textureId': textureId},
+        ) ??
             0);
   }
 
   @override
   Future<DateTime?> getAbsolutePosition(int? textureId) async {
     final int milliseconds = await _channel.invokeMethod<int>(
-          'absolutePosition',
-          <String, dynamic>{'textureId': textureId},
-        ) ??
+      'absolutePosition',
+      <String, dynamic>{'textureId': textureId},
+    ) ??
         0;
 
     // Sometimes the media server returns a absolute position far greater than
@@ -458,14 +459,31 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           return VideoEvent(
             eventType: VideoEventType.imaStart,
             key: key,
-            duration: Duration(milliseconds: map['duration'] as int),
           );
 
         case 'imaEnd':
+          double width = -1;
+          double height = -1;
+
+          try {
+            if (map.containsKey("width")) {
+              final num widthNum = map["width"] as num;
+              width = widthNum.toDouble();
+            }
+            if (map.containsKey("height")) {
+              final num heightNum = map["height"] as num;
+              height = heightNum.toDouble();
+            }
+          } catch (exception) {
+            BetterPlayerUtils.log(exception.toString());
+          }
+
+          final Size size = Size(width, height);
           return VideoEvent(
             eventType: VideoEventType.imaEnd,
             key: key,
             duration: Duration(milliseconds: map['duration'] as int),
+            size: size,
           );
 
         default:
@@ -486,7 +504,13 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         creationParams: {'textureId': textureId!},
       );
     } else {
-      return Texture(textureId: textureId!);
+      // TODO Only for android>23
+      return _DirectAndroidViewSurface(
+        viewType: 'com.jhomlala/better_player',
+        creationParams: {'textureId': textureId!},
+      );
+
+      // return Texture(textureId: textureId!);
     }
   }
 
@@ -500,5 +524,44 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       Duration(milliseconds: pair[0] as int),
       Duration(milliseconds: pair[1] as int),
     );
+  }
+}
+
+class _DirectAndroidViewSurface extends StatefulWidget {
+  const _DirectAndroidViewSurface({
+    required this.viewType,
+    this.creationParams,
+  });
+
+  final String viewType;
+  final dynamic creationParams;
+
+  @override
+  State<_DirectAndroidViewSurface> createState() =>
+      _DirectAndroidViewSurfaceState();
+}
+
+class _DirectAndroidViewSurfaceState extends State<_DirectAndroidViewSurface> {
+  late final _controller = PlatformViewsService.initSurfaceAndroidView(
+    id: UniqueKey().hashCode,
+    viewType: widget.viewType,
+    layoutDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+    creationParams: widget.creationParams,
+    creationParamsCodec: const StandardMessageCodec(),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return AndroidViewSurface(
+      controller: _controller.,
+      gestureRecognizers: {},
+      hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
