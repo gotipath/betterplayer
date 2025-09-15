@@ -19,8 +19,9 @@ A new flutter plugin project.
   s.dependency 'GCDWebServer'
   s.dependency 'HLSCachingReverseProxyServer'
   s.dependency 'PINCache'
-  
-  s.platform = :ios, '11.0'
+  s.dependency 'GoogleAds-IMA-iOS-SDK'
+
+  s.platform = :ios, '13.0'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'VALID_ARCHS[sdk=iphonesimulator*]' => 'x86_64' }
 end
 

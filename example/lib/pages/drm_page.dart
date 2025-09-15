@@ -47,7 +47,7 @@ class _DrmPageState extends State<DrmPage> {
       Constants.fairplayHlsUrl,
       drmConfiguration: BetterPlayerDrmConfiguration(
         drmType: BetterPlayerDrmType.fairplay,
-        certificateUrl: Constants.fairplayCertificateUrl,
+        certificateUrlOrBase64: Constants.fairplayCertificateUrl,
         licenseUrl: Constants.fairplayLicenseUrl,
       ),
     );

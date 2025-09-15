@@ -4,6 +4,7 @@
 
 #import "BetterPlayer.h"
 #import <better_player/better_player-Swift.h>
+#import "IMAAdEventTypeToString.m"
 
 static void *timeRangeContext = &timeRangeContext;
 static void *statusContext = &statusContext;
@@ -35,15 +36,19 @@ AVPictureInPictureController *_pipController;
         _player.automaticallyWaitsToMinimizeStalling = false;
     }
     self._observersAdded = false;
+
+    _playerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
+    _playerView.player = _player;
+    _playerView.delegate = self;
+
+    _adsLoader = [[IMAAdsLoader alloc] initWithSettings:nil];
+    _adsLoader.delegate = self;
+
     return self;
 }
 
-- (nonnull UIView
-
-*)view {
-    BetterPlayerView *playerView = [[BetterPlayerView alloc] initWithFrame:CGRectZero];
-    playerView.player = _player;
-    return playerView;
+- (UIView *)view {
+    return _playerView;
 }
 
 - (void)addObservers:(AVPlayerItem *)item {
@@ -198,10 +203,10 @@ radians) {
 
 - (void)setDataSourceAsset:(NSString *)asset withKey:(NSString *)key withCertificateUrl:(NSString *)certificateUrl withLicenseUrl:(NSString *)licenseUrl cacheKey:(NSString *)cacheKey cacheManager:(CacheManager *)cacheManager overriddenDuration:(int)overriddenDuration {
     NSString *path = [[NSBundle mainBundle] pathForResource:asset ofType:nil];
-    return [self setDataSourceURL:[NSURL fileURLWithPath:path] withKey:key withCertificateUrl:certificateUrl withLicenseUrl:(NSString *) licenseUrl withHeaders:@{} withCache:false cacheKey:cacheKey cacheManager:cacheManager overriddenDuration:overriddenDuration videoExtension:nil];
+    return [self setDataSourceURL:[NSURL fileURLWithPath:path] withKey:key withCertificateUrl:certificateUrl withLicenseUrl:(NSString *) licenseUrl withHeaders:@{} withCache:false cacheKey:cacheKey cacheManager:cacheManager overriddenDuration:overriddenDuration videoExtension:nil imaAdTagUrl:nil];
 }
 
-- (void)setDataSourceURL:(NSURL *)url withKey:(NSString *)key withCertificateUrl:(NSString *)certificateUrl withLicenseUrl:(NSString *)licenseUrl withHeaders:(NSDictionary *)headers withCache:(BOOL)useCache cacheKey:(NSString *)cacheKey cacheManager:(CacheManager *)cacheManager overriddenDuration:(int)overriddenDuration videoExtension:(NSString *)videoExtension {
+- (void)setDataSourceURL:(NSURL *)url withKey:(NSString *)key withCertificateUrl:(NSString *)certificateUrl withLicenseUrl:(NSString *)licenseUrl withHeaders:(NSDictionary *)headers withCache:(BOOL)useCache cacheKey:(NSString *)cacheKey cacheManager:(CacheManager *)cacheManager overriddenDuration:(int)overriddenDuration videoExtension:(NSString *)videoExtension imaAdTagUrl:(NSString *)imaAdTagUrl {
     _overriddenDuration = 0;
     if (headers == [NSNull null] || headers == NULL) {
         headers = @{};
@@ -235,6 +240,12 @@ radians) {
     10.0, *) && overriddenDuration > 0) {
         _overriddenDuration = overriddenDuration;
     }
+
+    // Store ad tag URL - setup will happen when view is requested
+    if (imaAdTagUrl != [NSNull null] && [imaAdTagUrl length] > 0) {
+        self.pendingAdTagUrl = imaAdTagUrl;
+    }
+
     return [self setDataSourcePlayerItem:item withKey:key];
 }
 
@@ -287,6 +298,12 @@ radians) {
 }
 
 - (void)startStalledCheck {
+
+    if (_isAdPlaying) {
+        [self performSelector:@selector(startStalledCheck) withObject:nil afterDelay:1];
+        return;
+    }
+
     if (_player.currentItem.playbackLikelyToKeepUp ||
             [self availableDuration] - CMTimeGetSeconds(_player.currentItem.currentTime) > 10.0) {
         [self play];
@@ -422,8 +439,15 @@ radians) {
     if (!_isInitialized || !_key) {
         return;
     }
+    NSLog(@"ADS updatePlayingState");
+
     if (!self._observersAdded) {
         [self addObservers:[_player currentItem]];
+    }
+
+    if (_isAdPlaying) {
+        [_player pause];
+        return;
     }
 
     if (_isPlaying) {
@@ -498,13 +522,29 @@ radians) {
 }
 
 - (void)play {
+    if (_disposed) return;
+
     _stalledCount = 0;
     _isStalledCheckStarted = false;
     _isPlaying = true;
+
+    if (_isAdPlaying) {
+        [_adsManager resume];
+        [_player pause];
+        return;
+    }
+
     [self updatePlayingState];
 }
 
 - (void)pause {
+    if (_disposed) return;
+    if (_isAdPlaying) {
+        [_adsManager pause];
+        [_player pause];
+        return;
+    }
+
     _isPlaying = false;
     [self updatePlayingState];
 }
@@ -773,11 +813,150 @@ radians) {
 
 - (void)dispose {
     [self pause];
+
+    // Clean up IMA SDK
+    if (_adsManager) {
+        [_adsManager destroy];
+        _adsManager = nil;
+    }
+    if (_adsLoader) {
+        _adsLoader.delegate = nil;
+        _adsLoader = nil;
+    }
+    self.contentPlayhead = nil;
+    self.adDisplayContainer = nil;
+    if (self.adContainerView) {
+        [self.adContainerView removeFromSuperview];
+        self.adContainerView = nil;
+    }
+
     [self disposeSansEventChannel];
     [_eventChannel setStreamHandler:nil];
     [self disablePictureInPicture];
     [self setPictureInPicture:false];
     _disposed = true;
+}
+
+// ======================= IMA ====================
+
+- (void)playerViewDidMoveToWindow {
+    if (self.pendingAdTagUrl) {
+        [self setupIMAWithAdTagUrl:self.pendingAdTagUrl];
+        self.pendingAdTagUrl = nil;
+    }
+}
+
+- (void)setupIMAWithAdTagUrl:(NSString *)adTagUrl {
+    if (!adTagUrl || [adTagUrl isEqualToString:@""]) {
+        return;
+    }
+
+    if (_adsManager) {
+        NSLog(@"AdsManager: Destroying existing instance");
+        [_adsManager destroy];
+        [_adsLoader contentComplete];
+        _adsManager = nil;
+    }
+
+    self.adDisplayContainer = [[IMAAdDisplayContainer alloc]
+            initWithAdContainer:_playerView.adContainerView
+                 viewController:[UIApplication sharedApplication].delegate.window.rootViewController];
+
+
+    // Create content playhead
+    self.contentPlayhead = [[IMAAVPlayerContentPlayhead alloc] initWithAVPlayer:_player];
+
+    // contentComplete callback.
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(contentDidFinishPlaying:)
+                                                 name:AVPlayerItemDidPlayToEndTimeNotification
+                                               object:_player.currentItem];
+
+    // Create an ad request with our ad tag, display container, and optional user context.
+    IMAAdsRequest *request = [[IMAAdsRequest alloc] initWithAdTagUrl:adTagUrl
+                                                  adDisplayContainer:self.adDisplayContainer
+                                                     contentPlayhead:self.contentPlayhead
+                                                         userContext:_player.currentItem];
+    // Request ads
+    [_adsLoader requestAdsWithRequest:request];
+
+}
+
+#pragma mark - IMAAdsLoaderDelegate
+
+- (void)contentDidFinishPlaying:(NSNotification *)notification {
+    // Make sure we don't call contentComplete as a result of an ad completing.
+    if (notification.object == _player.currentItem) {
+        [_adsLoader contentComplete];
+    }
+}
+
+
+- (void)adsLoader:(IMAAdsLoader *)loader adsLoadedWithData:(IMAAdsLoadedData *)adsLoadedData {
+    _adsManager = adsLoadedData.adsManager;
+    _adsManager.delegate = self;
+    // Create ads rendering settings to tell the SDK to use the in-app browser.
+    IMAAdsRenderingSettings *adsRenderingSettings = [[IMAAdsRenderingSettings alloc] init];
+    // adsRenderingSettings.linkOpenerPresentingController = self;
+    // Initialize the ads manager.
+    [_adsManager initializeWithAdsRenderingSettings:adsRenderingSettings];
+}
+
+- (void)adsLoader:(IMAAdsLoader *)loader failedWithErrorData:(IMAAdLoadingErrorData *)adErrorData {
+    // Something went wrong loading ads. Log the error and play the content.
+    NSLog(@"Error loading ads: %@", adErrorData.adError.message);
+}
+
+#pragma mark - IMAAdsManagerDelegate
+
+- (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdEvent:(IMAAdEvent *)event {
+    if (_disposed) return;
+    NSLog(@"AdsManager Event: %@", IMAAdEventTypeToString(event.type));
+    switch (event.type) {
+        case kIMAAdEvent_LOADED:
+            [adsManager start];
+            break;
+        case kIMAAdEvent_STARTED:
+            _isAdPlaying = true;
+            [_player pause];
+            if (_eventSink) {
+                _eventSink(@{@"event": @"imaStart", @"key": _key});
+            }
+            break;
+        case kIMAAdEvent_SKIPPED:
+        case kIMAAdEvent_COMPLETE:
+        case kIMAAdEvent_ALL_ADS_COMPLETED:
+            _isAdPlaying = false;
+            if (_eventSink) {
+                _eventSink(@{@"event": @"imaEnd", @"key": _key});
+            }
+            break;
+
+        case kIMAAdEvent_PAUSE:
+        case kIMAAdEvent_RESUME:
+            [_player pause];
+            break;
+
+
+        default:
+            break;
+    }
+}
+
+- (void)adsManager:(IMAAdsManager *)adsManager didReceiveAdError:(IMAAdError *)error {
+    NSLog(@"AdsManager error: %@", error.message);
+}
+
+- (void)adsManagerDidRequestContentPause:(IMAAdsManager *)adsManager {
+    if (_disposed) return;
+    _isAdPlaying = true;
+    [_player pause];
+}
+
+- (void)adsManagerDidRequestContentResume:(IMAAdsManager *)adsManager {
+    if (_disposed) return;
+    _isAdPlaying = false;
+    [self updatePlayingState];
 }
 
 @end

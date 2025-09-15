@@ -55,7 +55,7 @@ abstract class VideoPlayerPlatform {
   VoidCallback? onUserLeaveHint;
 
   Future<DrmInfo> getDRMInfo() {
-    throw UnimplementedError('init() has not been implemented.');
+    throw UnimplementedError('getDRMInfo() has not been implemented.');
   }
 
   /// Initializes the platform interface and disposes all existing players.

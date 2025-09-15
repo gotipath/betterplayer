@@ -32,13 +32,9 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
     if (Platform.isIOS) {
       final device = await DeviceInfoPlugin().iosInfo;
       if (!device.isPhysicalDevice) {
-        return DrmInfo(
-          vendor: "null",
-          description: "null",
-          algorithms: "null",
-          securityLevel: "null",
-        );
+        throw Exception("DRM Unsupportedon simulator");
       }
+
       return DrmInfo(
         vendor: 'com.apple.fairplay',
         version: device.systemVersion,
