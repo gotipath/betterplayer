@@ -70,6 +70,7 @@ class BetterPlayerConfiguration {
 
   ///Defines fit of the video, allows to fix video stretching, see possible
   ///values here: https://api.flutter.dev/flutter/painting/BoxFit-class.html
+  @Deprecated("doesnt work")
   final BoxFit fit;
 
   ///Defines rotation of the video in degrees. Default value is 0. Can be 0, 90, 180, 270.

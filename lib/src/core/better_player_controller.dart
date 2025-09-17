@@ -1027,6 +1027,7 @@ class BetterPlayerController {
   ///Setup overridden fit.
   void setOverriddenFit(BoxFit fit) {
     _overriddenFit = fit;
+    videoPlayerController?.setFit(fit);
     _postControllerEvent(BetterPlayerControllerEvent.overriddenUi);
   }
 

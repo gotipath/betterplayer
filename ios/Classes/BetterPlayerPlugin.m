@@ -430,14 +430,14 @@ bool _remoteCommandsInitialized = false;
             NSDictionary* headers = dataSource[@"headers"];
             NSNumber* maxCacheSize = dataSource[@"maxCacheSize"];
             NSString* videoExtension = dataSource[@"videoExtension"];
-            
+
             if (headers == [ NSNull null ]){
                 headers = @{};
             }
             if (videoExtension == [NSNull null]){
                 videoExtension = nil;
             }
-            
+
             if (urlArg != [NSNull null]){
                 NSURL* url = [NSURL URLWithString:urlArg];
                 if ([_cacheManager isPreCacheSupportedWithUrl:url videoExtension:videoExtension]){
@@ -466,6 +466,10 @@ bool _remoteCommandsInitialized = false;
                     NSLog(@"Stop pre cache is not supported for given data source.");
                 }
             }
+            result(nil);
+        } else if ([@"setFit" isEqualToString:call.method]){
+            NSString* fitArg = argsMap[@"fit"];
+            [player setFit:fitArg];
             result(nil);
         } else {
             result(FlutterMethodNotImplemented);

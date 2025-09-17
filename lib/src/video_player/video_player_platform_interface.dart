@@ -185,6 +185,10 @@ abstract class VideoPlayerPlatform {
   // This private method is called by the instance setter, which fails if the class is
   // implemented with `implements`.
   void _verifyProvidesDefaultImplementations() {}
+
+  Future<void> setFit(int? textureId, BoxFit fit) {
+    throw UnimplementedError('setFit() has not been implemented.');
+  }
 }
 
 /// Description of the data source used to create an instance of

@@ -657,6 +657,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   static Future stopPreCache(String url, String? cacheKey) async {
     return _videoPlayerPlatform.stopPreCache(url, cacheKey);
   }
+
+  void setFit(BoxFit fit) {
+    _videoPlayerPlatform.setFit(_textureId, fit);
+  }
 }
 
 /// Widget that displays the video controlled by [controller].

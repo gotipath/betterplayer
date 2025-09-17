@@ -65,6 +65,7 @@ import com.google.ads.interactivemedia.v3.api.ImaSdkFactory
 import com.google.android.exoplayer2.analytics.AnalyticsListener
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.source.ads.AdsMediaSource
+import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSpec
 import java.io.File
@@ -839,6 +840,22 @@ internal class BetterPlayer(
 
     fun setMixWithOthers(mixWithOthers: Boolean) {
         setAudioAttributes(exoPlayer, mixWithOthers)
+    }
+
+    fun setFit(fit: String) {
+        playerView.resizeMode = when (fit.lowercase()) {
+            "contain", "scaledown", "none" -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+
+            "cover" -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+
+            "fill" -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+
+            "fitwidth" -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_WIDTH
+
+            "fitheight" -> AspectRatioFrameLayout.RESIZE_MODE_FIXED_HEIGHT
+
+            else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
     }
 
     fun dispose() {

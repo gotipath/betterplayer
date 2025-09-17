@@ -7,10 +7,12 @@
 #import <AVKit/AVKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <GLKit/GLKit.h>
+#import <GoogleInteractiveMediaAds/GoogleInteractiveMediaAds.h>
 #import "BetterPlayerTimeUtils.h"
 #import "BetterPlayerView.h"
 #import "BetterPlayerEzDrmAssetsLoaderDelegate.h"
-#import <GoogleInteractiveMediaAds/GoogleInteractiveMediaAds.h>
+
+static NSString *IMAAdEventTypeToString(IMAAdEventType type);
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -62,6 +64,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)setVolume:(double)volume;
 
+- (void)setFit:(NSString *)fit;
+
 - (void)setSpeed:(double)speed result:(FlutterResult)result;
 
 - (void)setAudioTrack:(NSString *)name index:(int)index;
@@ -89,8 +93,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, strong) IMAAVPlayerContentPlayhead *contentPlayhead;
 @property(nonatomic, strong) IMAAdDisplayContainer *adDisplayContainer;
 @property(nonatomic, strong) UIView *adContainerView;
-@property (nonatomic, strong) NSString *pendingAdTagUrl;
-@property (nonatomic, assign) bool isAdPlaying;
+@property(nonatomic, strong) NSString *pendingAdTagUrl;
+@property(nonatomic, assign) bool isAdPlaying;
 
 @end
 

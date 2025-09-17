@@ -241,6 +241,11 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
                 result.success(null)
             }
 
+            SET_FIT_METHOD -> {
+                player.setFit(call.argument(FIT_PARAMETER)!!)
+                result.success(null)
+            }
+
             SET_TRACK_PARAMETERS_METHOD -> {
                 player.setTrackParameters(
                     call.argument(WIDTH_PARAMETER)!!,
@@ -587,6 +592,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val VOLUME_PARAMETER = "volume"
         private const val LOCATION_PARAMETER = "location"
         private const val SPEED_PARAMETER = "speed"
+        private const val FIT_PARAMETER = "fit"
         private const val WIDTH_PARAMETER = "width"
         private const val HEIGHT_PARAMETER = "height"
         private const val BITRATE_PARAMETER = "bitrate"
@@ -626,6 +632,7 @@ class BetterPlayerPlugin : FlutterPlugin, ActivityAware, MethodCallHandler {
         private const val POSITION_METHOD = "position"
         private const val ABSOLUTE_POSITION_METHOD = "absolutePosition"
         private const val SET_SPEED_METHOD = "setSpeed"
+        private const val SET_FIT_METHOD = "setFit"
         private const val SET_TRACK_PARAMETERS_METHOD = "setTrackParameters"
         private const val SET_AUDIO_TRACK_METHOD = "setAudioTrack"
         private const val ENABLE_PICTURE_IN_PICTURE_METHOD = "enablePictureInPicture"

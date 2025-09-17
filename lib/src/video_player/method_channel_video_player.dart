@@ -211,6 +211,17 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<void> setFit(int? textureId, BoxFit fit) {
+    return _channel.invokeMethod<void>(
+      'setFit',
+      <String, dynamic>{
+        'textureId': textureId,
+        'fit': fit.name,
+      },
+    );
+  }
+
+  @override
   Future<void> setTrackParameters(
       int? textureId, int? width, int? height, int? bitrate) {
     return _channel.invokeMethod<void>(
