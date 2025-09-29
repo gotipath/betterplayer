@@ -269,7 +269,18 @@ class BetterPlayerController {
 
     ///Process data source
     await _setupDataSource(betterPlayerDataSource);
-    setTrack(BetterPlayerAsmsTrack.defaultTrack());
+
+    /// Try selecting the already picked quality
+    if (_betterPlayerAsmsTrack != null) {
+      _betterPlayerAsmsTrack = _betterPlayerAsmsTracks.firstWhere(
+        (element) =>
+            element.width == _betterPlayerAsmsTrack!.width ||
+            element.height == _betterPlayerAsmsTrack!.height,
+        orElse: () => BetterPlayerAsmsTrack.defaultTrack(),
+      );
+    }
+
+    setTrack(_betterPlayerAsmsTrack ?? BetterPlayerAsmsTrack.defaultTrack());
   }
 
   ///Configure subtitles based on subtitles source.
