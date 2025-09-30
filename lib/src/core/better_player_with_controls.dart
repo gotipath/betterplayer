@@ -13,8 +13,11 @@ import 'package:flutter/material.dart';
 
 class BetterPlayerWithControls extends StatefulWidget {
   final BetterPlayerController? controller;
+  final bool androidTextureView;
 
-  const BetterPlayerWithControls({Key? key, this.controller}) : super(key: key);
+  const BetterPlayerWithControls(
+      {Key? key, this.controller, required this.androidTextureView})
+      : super(key: key);
 
   @override
   _BetterPlayerWithControlsState createState() =>
@@ -136,6 +139,7 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
             child: _BetterPlayerVideoFitWidget(
               betterPlayerController,
               betterPlayerController.getFit(),
+              androidTextureView: widget.androidTextureView,
             ),
           ),
           betterPlayerController.betterPlayerConfiguration.overlay ??
@@ -209,10 +213,13 @@ class _BetterPlayerWithControlsState extends State<BetterPlayerWithControls> {
 
 ///Widget used to set the proper box fit of the video. Default fit is 'fill'.
 class _BetterPlayerVideoFitWidget extends StatefulWidget {
+  final bool androidTextureView;
+
   const _BetterPlayerVideoFitWidget(
     this.betterPlayerController,
     this.boxFit, {
     Key? key,
+    required this.androidTextureView,
   }) : super(key: key);
 
   final BetterPlayerController betterPlayerController;
@@ -300,7 +307,10 @@ class _BetterPlayerVideoFitWidgetState
   @override
   Widget build(BuildContext context) {
     if (_initialized && _started) {
-      return VideoPlayer(controller);
+      return VideoPlayer(
+        controller,
+        androidTextureView: widget.androidTextureView,
+      );
     } else {
       return const SizedBox();
     }

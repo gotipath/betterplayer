@@ -10,7 +10,11 @@ import 'package:visibility_detector/visibility_detector.dart';
 
 ///Widget which uses provided controller to render video player.
 class BetterPlayer extends StatefulWidget {
-  const BetterPlayer({Key? key, required this.controller}) : super(key: key);
+  final bool androidTextureView;
+
+  const BetterPlayer(
+      {Key? key, required this.controller, this.androidTextureView = false})
+      : super(key: key);
 
   factory BetterPlayer.network(
     String url, {
@@ -273,6 +277,7 @@ class _BetterPlayerState extends State<BetterPlayer>
           widget.controller.onPlayerVisibilityChanged(info.visibleFraction),
       child: BetterPlayerWithControls(
         controller: widget.controller,
+        androidTextureView: widget.androidTextureView,
       ),
     );
   }

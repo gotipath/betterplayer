@@ -83,7 +83,7 @@ internal class BetterPlayer(
     result: MethodChannel.Result
 ) {
     val playerView: PlayerView
-    private val exoPlayer: ExoPlayer
+    val exoPlayer: ExoPlayer
 
     private val eventSink = QueuingEventSink()
     private val trackSelector: DefaultTrackSelector = DefaultTrackSelector(context)
@@ -514,10 +514,8 @@ internal class BetterPlayer(
                     eventSink.setDelegate(null)
                 }
             })
-//        surface = Surface(textureEntry.surfaceTexture())
-//        exoPlayer.setVideoSurface(surface)
-        playerView.player = exoPlayer
-
+        surface = Surface(textureEntry.surfaceTexture())
+        exoPlayer.setVideoSurface(surface)
 
         setAudioAttributes(exoPlayer, true)
 

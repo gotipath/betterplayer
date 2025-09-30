@@ -487,7 +487,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Widget buildView(int? textureId) {
+  Widget buildView(int? textureId, bool androidTextureView) {
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       return UiKitView(
         viewType: 'com.jhomlala/better_player',
@@ -495,13 +495,12 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         creationParams: {'textureId': textureId!},
       );
     } else {
-      // TODO Only for android>23
+      if (androidTextureView) return Texture(textureId: textureId!);
+
       return _DirectAndroidViewSurface(
         viewType: 'com.jhomlala/better_player',
         creationParams: {'textureId': textureId!},
       );
-
-      // return Texture(textureId: textureId!);
     }
   }
 

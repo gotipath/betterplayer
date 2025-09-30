@@ -659,6 +659,7 @@ private class PlayerFactory(val videoPlayers: LongSparseArray<BetterPlayer>) :
 
     inner class PlayerPlatformView(val betterPlayer: BetterPlayer) : PlatformView {
         override fun getView(): View? {
+            betterPlayer.playerView.player = betterPlayer.exoPlayer
             return betterPlayer.playerView
         }
 
