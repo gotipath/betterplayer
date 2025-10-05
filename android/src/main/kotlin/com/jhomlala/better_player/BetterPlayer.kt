@@ -68,6 +68,7 @@ import com.google.android.exoplayer2.source.ads.AdsMediaSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.PlayerView
 import com.google.android.exoplayer2.upstream.DataSpec
+import com.google.android.exoplayer2.video.VideoSize
 import java.io.File
 import java.lang.Exception
 import java.lang.IllegalStateException
@@ -572,6 +573,16 @@ internal class BetterPlayer(
             override fun onPlayerError(error: PlaybackException) {
                 eventSink.error("VideoError", "Video player had error $error", "")
             }
+
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                super.onVideoSizeChanged(videoSize)
+                val event: MutableMap<String, Any?> = HashMap()
+                event["event"] = "resize"
+                event["key"] = key
+                event["height"] = videoSize.height
+                event["width"] = videoSize.width
+                eventSink.success(event)
+            }
         })
         val reply: MutableMap<String, Any> = HashMap()
         reply["textureId"] = textureEntry.id()
@@ -673,19 +684,19 @@ internal class BetterPlayer(
             event["event"] = "initialized"
             event["key"] = key
             event["duration"] = getDuration()
-            if (exoPlayer.videoFormat != null) {
-                val videoFormat = exoPlayer.videoFormat
-                var width = videoFormat?.width
-                var height = videoFormat?.height
-                val rotationDegrees = videoFormat?.rotationDegrees
-                // Switch the width/height if video was taken in portrait mode
-                if (rotationDegrees == 90 || rotationDegrees == 270) {
-                    width = exoPlayer.videoFormat?.height
-                    height = exoPlayer.videoFormat?.width
-                }
-                event["width"] = width
-                event["height"] = height
-            }
+//            if (exoPlayer.videoFormat != null) {
+//                val videoFormat = exoPlayer.videoFormat
+//                var width = videoFormat?.width
+//                var height = videoFormat?.height
+//                val rotationDegrees = videoFormat?.rotationDegrees
+//                // Switch the width/height if video was taken in portrait mode
+//                if (rotationDegrees == 90 || rotationDegrees == 270) {
+//                    width = exoPlayer.videoFormat?.height
+//                    height = exoPlayer.videoFormat?.width
+//                }
+//                event["width"] = width
+//                event["height"] = height
+//            }
             eventSink.success(event)
         }
     }

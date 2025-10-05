@@ -308,7 +308,7 @@ class _BetterPlayerVideoFitWidgetState
   Widget build(BuildContext context) {
     if (_initialized && _started) {
       return VideoPlayer(
-        controller,
+        controller!,
         androidTextureView: widget.androidTextureView,
       );
     } else {

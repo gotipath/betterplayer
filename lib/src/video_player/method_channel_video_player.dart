@@ -5,7 +5,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:better_player/better_player.dart';
-import 'package:better_player/src/core/better_player_utils.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
@@ -383,29 +382,10 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       final String? key = map["key"] as String?;
       switch (eventType) {
         case 'initialized':
-          double width = 0;
-          double height = 0;
-
-          try {
-            if (map.containsKey("width")) {
-              final num widthNum = map["width"] as num;
-              width = widthNum.toDouble();
-            }
-            if (map.containsKey("height")) {
-              final num heightNum = map["height"] as num;
-              height = heightNum.toDouble();
-            }
-          } catch (exception) {
-            BetterPlayerUtils.log(exception.toString());
-          }
-
-          final Size size = Size(width, height);
-
           return VideoEvent(
             eventType: VideoEventType.initialized,
             key: key,
             duration: Duration(milliseconds: map['duration'] as int),
-            size: size,
           );
         case 'completed':
           return VideoEvent(
@@ -475,6 +455,13 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
             duration: (map['duration'] != null)
                 ? Duration(milliseconds: map['duration'] as int)
                 : null,
+          );
+
+        case 'resize':
+          return VideoEvent(
+            eventType: VideoEventType.resize,
+            key: key,
+            size: Size(map["width"].toDouble(), map["height"].toDouble()),
           );
 
         default:

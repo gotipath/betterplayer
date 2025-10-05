@@ -221,10 +221,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       videoEventStreamController.add(event);
       switch (event.eventType) {
         case VideoEventType.initialized:
-          value = value.copyWith(
-            duration: event.duration,
-            size: event.size,
-          );
+          value = value.copyWith(duration: event.duration);
           _initializingCompleter.complete(null);
           _applyPlayPause();
           break;
@@ -240,21 +237,22 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
           break;
         case VideoEventType.bufferingEnd:
           value = value.copyWith(isBuffering: false);
-
           break;
-
         case VideoEventType.play:
           play();
           break;
         case VideoEventType.pause:
           pause();
           break;
+
         case VideoEventType.seek:
           seekTo(event.position);
           break;
+
         case VideoEventType.pipStart:
           value = value.copyWith(isPip: true);
           break;
+
         case VideoEventType.pipStop:
           value = value.copyWith(isPip: false);
           break;
@@ -269,6 +267,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
             isShowingAds: false,
             duration: event.duration,
           );
+          break;
+
+        case VideoEventType.resize:
+          value = value.copyWith(size: event.size);
           break;
 
         case VideoEventType.unknown:
@@ -674,7 +676,7 @@ class VideoPlayer extends StatefulWidget {
 
   /// The [VideoPlayerController] responsible for the video being rendered in
   /// this widget.
-  final VideoPlayerController? controller;
+  final VideoPlayerController controller;
 
   @override
   _VideoPlayerState createState() => _VideoPlayerState();
@@ -683,7 +685,7 @@ class VideoPlayer extends StatefulWidget {
 class _VideoPlayerState extends State<VideoPlayer> {
   _VideoPlayerState() {
     _listener = () {
-      final int? newTextureId = widget.controller!.textureId;
+      final int? newTextureId = widget.controller.textureId;
       if (newTextureId != _textureId) {
         setState(() {
           _textureId = newTextureId;
@@ -698,34 +700,44 @@ class _VideoPlayerState extends State<VideoPlayer> {
   @override
   void initState() {
     super.initState();
-    _textureId = widget.controller!.textureId;
+    _textureId = widget.controller.textureId;
     // Need to listen for initialization events since the actual texture ID
     // becomes available after asynchronous initialization finishes.
-    widget.controller!.addListener(_listener);
+    widget.controller.addListener(_listener);
   }
 
   @override
   void didUpdateWidget(VideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    oldWidget.controller!.removeListener(_listener);
-    _textureId = widget.controller!.textureId;
-    widget.controller!.addListener(_listener);
+    oldWidget.controller.removeListener(_listener);
+    _textureId = widget.controller.textureId;
+    widget.controller.addListener(_listener);
   }
 
   @override
   void deactivate() {
     super.deactivate();
-    widget.controller!.removeListener(_listener);
+    widget.controller.removeListener(_listener);
   }
 
   @override
   Widget build(BuildContext context) {
-    return _textureId == null
-        ? SizedBox.shrink()
-        : _videoPlayerPlatform.buildView(
-            _textureId,
-            widget.androidTextureView,
-          );
+    if (_textureId == null) return SizedBox.shrink();
+
+    if (widget.androidTextureView && Platform.isAndroid) {
+      return Center(
+        child: ListenableBuilder(
+          listenable: widget.controller,
+          child: _videoPlayerPlatform.buildView(_textureId, true),
+          builder: (context, child) => AspectRatio(
+            aspectRatio: widget.controller.value.aspectRatio,
+            child: child,
+          ),
+        ),
+      );
+    }
+
+    return _videoPlayerPlatform.buildView(_textureId, false);
   }
 }
 

@@ -481,6 +481,7 @@ enum VideoEventType {
 
   /// An unknown event has been received.
   unknown,
+  resize,
 }
 
 /// Describes a discrete segment of time within a video using a [start] and
